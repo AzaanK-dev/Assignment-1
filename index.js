@@ -1,4 +1,7 @@
 import express from "express"
+import swaggerUi from "swagger-ui-express";
+import openapi from "./openapi.json" with { type: "json" };
+
 
 const app = express()
 const port = 3000
@@ -93,6 +96,9 @@ app.delete('/tasks/:id', (req,res)=>{
     tasks.splice(index,1)    // splice(index,delete,add)
     return res.status(200).json({message: "Task Deleted"})
 })
+
+// Stage 5
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 
 app.listen(port, ()=>{
     console.log(`App listening on port ${port}`);
