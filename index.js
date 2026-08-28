@@ -59,7 +59,39 @@ app.post('/tasks', (req,res)=>{
         done: false
     }
     tasks.push(newTask)
-    res.status(201).json({message: "Done, here is your receipt"})
+    return res.status(201).json({message: "Done, here is your receipt"})
+})
+
+// Stage 4
+app.put('/tasks/:id', (req,res)=>{
+    const id = req.params.id
+    const index = tasks.findIndex(t => t.id==id)
+    if(!index){
+        return res.status(404).json({message: "ID is Unknown!"})
+    }
+    
+    const {title, done} = req.body
+    if(!title && !done){
+        return res.status(400).json({message: "Empty body"})
+    }
+    const updatedTask = {
+        id,
+        title,
+        done
+    }
+    
+    tasks[index] = updatedTask
+    return res.status(200).json({message: "Task Updated"})
+})
+
+app.delete('/tasks/:id', (req,res)=>{
+    const id = req.params.id
+    const index = tasks.findIndex(t => t.id==id)
+    if(!index){
+        return res.status(404).json({message: "ID is Unknown!"})
+    }
+    tasks.splice(index,1)    // splice(index,delete,add)
+    return res.status(200).json({message: "Task Deleted"})
 })
 
 app.listen(port, ()=>{
