@@ -1,12 +1,36 @@
 import express from "express"
+import sqlite3 from "sqlite3"
 import swaggerUi from "swagger-ui-express";
 import openapi from "./openapi.json" with { type: "json" };
 
 
 const app = express()
+app.use(express.json());
 const port = 3000
 
-app.use(express.json());
+const db = new sqlite3.Database("./tasks.db", (err) => {
+    if (err) console.error("Error while db connection", err);
+    else console.log("Connected to database");
+})
+db.run(`
+    CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        done BOOLEAN DEFAULT 0
+    )    
+`)
+
+db.run(`
+    INSERT INTO tasks(title, done)
+    VALUES 
+        ('Eat',0),
+        ('Sleep',0),
+        ('Gym',1)
+`)
+
+
+
+
 
 const tasks = [
     {
@@ -88,7 +112,7 @@ app.put('/tasks/:id', (req, res) => {
 })
 
 app.delete('/tasks/:id', (req, res) => {
-    const id =  Number(req.params.id)
+    const id = Number(req.params.id)
     const index = tasks.findIndex(t => t.id == id)
     if (index === -1) {
         return res.status(404).json({ message: "ID is Unknown!" });
