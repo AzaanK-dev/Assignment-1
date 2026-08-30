@@ -12,6 +12,7 @@ const db = new sqlite3.Database("./tasks.db", (err) => {
     if (err) console.error("Error while db connection", err);
     else console.log("Connected to database");
 })
+
 db.run(`
     CREATE TABLE IF NOT EXISTS tasks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,38 +21,43 @@ db.run(`
     )    
 `)
 
-db.run(`
-    INSERT INTO tasks(title, done)
-    VALUES 
-        ('Eat',0),
-        ('Sleep',0),
-        ('Gym',1)
-`)
+db.get(`SELECT COUNT(*) AS count FROM tasks`, (err, row) => {
+    if(err) return console.error(err.message);
+
+    if (row.count === 0) {
+        db.run(`
+            INSERT INTO tasks(title, done)
+            VALUES 
+                ('Eat',0),
+                ('Sleep',0),
+                ('Gym',1)
+        `)
+    }
+})
 
 
 
-
-
-const tasks = [
-    {
-        id: 1,
-        title: "Eat",
-        done: true
-    },
-    {
-        id: 2,
-        title: "Sleep",
-        done: true
-    },
-    {
-        id: 3,
-        title: "Repeat",
-        done: false
-    },
-]
+// const tasks = [
+//     {
+//         id: 1,
+//         title: "Eat",
+//         done: true
+//     },
+//     {
+//         id: 2,
+//         title: "Sleep",
+//         done: true
+//     },
+//     {
+//         id: 3,
+//         title: "Repeat",
+//         done: false
+//     },
+// ]
 
 
 // Stage 1
+
 app.get('/', (req, res) => {
     res.json({
         "name": "Task API",
@@ -64,14 +70,28 @@ app.get('/health', (req, res) => {
     res.json({ "status": "ok" })
 })
 
+
 // Stage 2
 app.get('/tasks', (req, res) => {
-    res.json(tasks)
+    // res.json(tasks)
+    // Stage 1 (A2)
+    const sqlTasks = "SELECT * FROM tasks"
+    db.all(sqlTasks, [], (err,rows)=>{
+        if(err)  return res.status(500).json({error: "Failed to get tasks"});
+        return res.status(200).json(rows);
+    })
 })
 
 app.get('/tasks/:id', (req, res) => {
     const id = Number(req.params.id)
-    res.json(tasks.filter(t => t.id == id))
+    // res.json(tasks.filter(t => t.id == id))
+
+    db.get("SELECT * FROM tasks WHERE id = ?",[id],(err,task)=>{
+        if(err)  return res.status(500).json({error: "Failed to get task by id"});
+
+        if (!task) return res.status(404).json({ message: 'Task not found' });
+        return res.status(200).json(task)
+    })
 })
 
 // Stage 3
