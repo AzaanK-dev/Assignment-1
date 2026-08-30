@@ -22,7 +22,7 @@ db.run(`
 `)
 
 db.get(`SELECT COUNT(*) AS count FROM tasks`, (err, row) => {
-    if(err) return console.error(err.message);
+    if (err) return console.error(err.message);
 
     if (row.count === 0) {
         db.run(`
@@ -76,8 +76,8 @@ app.get('/tasks', (req, res) => {
     // res.json(tasks)
     // Stage 1 (A2)
     const sqlTasks = "SELECT * FROM tasks"
-    db.all(sqlTasks, [], (err,rows)=>{
-        if(err)  return res.status(500).json({error: "Failed to get tasks"});
+    db.all(sqlTasks, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Failed to get tasks" });
         return res.status(200).json(rows);
     })
 })
@@ -86,8 +86,8 @@ app.get('/tasks/:id', (req, res) => {
     const id = Number(req.params.id)
     // res.json(tasks.filter(t => t.id == id))
 
-    db.get("SELECT * FROM tasks WHERE id = ?",[id],(err,task)=>{
-        if(err)  return res.status(500).json({error: "Failed to get task by id"});
+    db.get("SELECT * FROM tasks WHERE id = ?", [id], (err, task) => {
+        if (err) return res.status(500).json({ error: "Failed to get task by id" });
 
         if (!task) return res.status(404).json({ message: 'Task not found' });
         return res.status(200).json(task)
@@ -96,16 +96,24 @@ app.get('/tasks/:id', (req, res) => {
 
 // Stage 3
 app.post('/tasks', (req, res) => {
-    const task = req.body
-    if (!task.title) {
-        return res.status(400).json({ message: "Title is missing!" })
-    }
-    const newTask = {
-        id: tasks.length + 1,
-        title: task.title,
-        done: false
-    }
-    tasks.push(newTask)
+    const { title, done } = req.body
+    if(!title)  return res.status(400).json({ error: "Title is missing" });
+ 
+    db.run(
+        `INSERT INTO tasks (title, done) VALUES (?, ?)`,
+        [title, done ?? 0],
+        function (err) {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+
+            res.status(201).json({
+                id: this.lastID,
+                title,
+                done: done ?? 0
+            });
+        }
+    );
     return res.status(201).json({ message: "Done, here is your receipt" })
 })
 
