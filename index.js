@@ -86,7 +86,7 @@ app.get('/tasks/:id', (req, res) => {
     const id = Number(req.params.id)
     // res.json(tasks.filter(t => t.id == id))
 
-    db.get("SELECT * FROM tasks WHERE id = ?", [id], (err, task) => {
+    db.get(`SELECT * FROM tasks WHERE id = ?`, [id], (err, task) => {
         if (err) return res.status(500).json({ error: "Failed to get task by id" });
 
         if (!task) return res.status(404).json({ message: 'Task not found' });
@@ -97,8 +97,8 @@ app.get('/tasks/:id', (req, res) => {
 // Stage 3
 app.post('/tasks', (req, res) => {
     const { title, done } = req.body
-    if(!title)  return res.status(400).json({ error: "Title is missing" });
- 
+    if (!title) return res.status(400).json({ error: "Title is missing" });
+
     db.run(
         `INSERT INTO tasks (title, done) VALUES (?, ?)`,
         [title, done ?? 0],
@@ -110,7 +110,7 @@ app.post('/tasks', (req, res) => {
             res.status(201).json({
                 id: this.lastID,
                 title,
-                done: done ?? 0
+                done: done ?? false
             });
         }
     );
@@ -119,34 +119,35 @@ app.post('/tasks', (req, res) => {
 
 // Stage 4
 app.put('/tasks/:id', (req, res) => {
-    const id = Number(req.params.id)
-    const index = tasks.findIndex(t => t.id == id)
-    if (index === -1) {
-        return res.status(404).json({ message: "ID is Unknown!" });
-    }
-
     const { title, done } = req.body
     if (!title && !done) {
         return res.status(400).json({ message: "Empty body" })
     }
-    const updatedTask = {
-        id,
-        title,
-        done
-    }
 
-    tasks[index] = updatedTask
-    return res.status(200).json({ message: "Task Updated" })
+    const id = Number(req.params.id)
+    db.run(`UPDATE tasks SET title = ?, done = ? WHERE id = ?`, [title, done, id], (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        if (this.changes === 0) {  // this.changes tells how many rows were updated/deleted.
+            return res.status(404).json({ message: 'Task not found' });
+        }
+        return res.status(200).json({
+            id: Number(id),
+            title,
+            done
+        });
+    })
 })
 
 app.delete('/tasks/:id', (req, res) => {
     const id = Number(req.params.id)
-    const index = tasks.findIndex(t => t.id == id)
-    if (index === -1) {
-        return res.status(404).json({ message: "ID is Unknown!" });
-    }
-    tasks.splice(index, 1)    // splice(index,delete,add)
-    return res.status(200).json({ message: "Task Deleted" })
+    db.run(`DELETE FROM tasks WHERE id = ?`, [id], (err) => {
+        if (err)  return res.status(500).json({ error: err.message });
+        if (this.changes === 0) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+        return res.status(200).json({ message: 'Task deleted successfully' });
+    })
 })
 
 // Stage 5
